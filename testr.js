@@ -26,6 +26,9 @@ var testr, define;
 	function isObject(o) {
 		return typeof o === 'object' && !isArray(o);
 	}
+	function isBoolean(b) {
+		return typeof b === 'boolean';
+	}
 
 	// deep copy
 	function deepCopy(src) {
@@ -151,15 +154,22 @@ var testr, define;
 
 			// auto load associated files
 			if (config.autoLoad) {
-				var autoDeps = [];
-				var loadAll = typeof config.autoLoad === 'boolean' || config.autoLoad === 'all';
+				var autoDeps = [],
+					loadAll = isBoolean(config.autoLoad) || config.autoLoad === 'all';
 
-				if (loadAll || config.autoLoad === "stub") {
-					autoDeps.push(config.stubUrl + '/' + module.id + '.stub')
-				}
-				if (loadAll || config.autoLoad === "spec") {
-					autoDeps.push(config.specUrl + '/' + module.id + '.spec')
-				}
+				each(['stub','spec'],function(type) {
+					var load = loadAll || config.autoLoad === type;
+
+					// handle case where config.autoLoad is an object
+					if (!load && isObject(config.autoLoad) && config.autoLoad[type]) {
+						var loadConfig = config.autoLoad[type];
+						load = isBoolean(loadConfig) || loadConfig === module.id ||
+							   (isArray(loadConfig) && loadConfig.indexOf(module.id) > -1)
+					}
+					if (load) {
+						autoDeps.push(config[type + 'Url'] + '/' + module.id + '.' + type);
+					}
+				});
 
 				require({
 					context: module.id,
